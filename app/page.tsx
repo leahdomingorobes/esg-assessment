@@ -1,69 +1,61 @@
 "use client";
+import { useState } from "react";
 
-import React, { useState } from "react";
-import { AlertCircle, CheckCircle2, TrendingUp, Zap, ArrowRight } from "lucide-react";
-
-type Step = "form" | "loading" | "result";
-
-interface FormData {
-  company: string;
-  industry: string;
-  employees: string;
-  practices: string[];
-  compliance: string;
-  email: string;
-}
-
-const industries = ["Manufacturing", "Technology", "Agriculture", "Retail/E-commerce", "Services/Consulting", "Energy/Utilities", "Real Estate", "Finance", "Other"];
-const esgPractices = ["Carbon tracking/reduction", "Waste management", "Energy efficiency", "Water conservation", "Employee diversity programs", "Health & safety protocols", "Ethics/compliance policy", "Community engagement", "Supply chain transparency", "Board accountability"];
-
-export default function ESGAssessment() {
-  const [step, setStep] = useState<Step>("form");
-  const [formData, setFormData] = useState<FormData>({
-    company: "",
-    industry: "",
-    employees: "",
-    practices: [],
-    compliance: "",
-    email: "",
-  });
-  const [assessment, setAssessment] = useState<any>(null);
+export default function Home() {
+  const [company, setCompany] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [email, setEmail] = useState("");
+  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const togglePractice = (practice: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      practices: prev.practices.includes(practice) ? prev.practices.filter((p) => p !== practice) : [...prev.practices, practice],
-    }));
-  };
-
-  const generateAssessment = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!formData.company || !formData.industry || !formData.email) {
-      setError("Please fill in all required fields");
-      return;
-    }
-
     setLoading(true);
-    setError("");
-    setStep("loading");
-
+    
     try {
-      const response = await fetch("/api/generate-assessment", {
+      const res = await fetch("/api/generate-assessment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          company: formData.company,
-          industry: formData.industry,
-          employees: formData.employees,
-          practices: formData.practices,
-          compliance: formData.compliance,
-        }),
+        body: JSON.stringify({ company, industry, employees: "", practices: [], compliance: "" }),
       });
+      
+      const data = await res.json();
+      setResult(data.result);
+    } catch (err) {
+      setResult("Error: " + err);
+    }
+    
+    setLoading(false);
+  };
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
-
-      setAssessment({
-        result:
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-900 to-slate-950 p-8">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold text-white mb-8">ESG Gap Assessment</h1>
+        
+        {!result ? (
+          <form onSubmit={handleSubmit} className="bg-white/10 p-8 rounded-lg space-y-4">
+            <input type="text" placeholder="Company Name" value={company} onChange={(e) => setCompany(e.target.value)} className="w-full p-3 bg-white/5 border border-white/20 rounded text-white placeholder-white/50" required />
+            <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full p-3 bg-white/5 border border-white/20 rounded text-white" required>
+              <option value="">Select Industry</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Technology">Technology</option>
+              <option value="Retail">Retail</option>
+            </select>
+            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 bg-white/5 border border-white/20 rounded text-white placeholder-white/50" required />
+            <button type="submit" disabled={loading} className="w-full py-3 bg-emerald-500 text-white rounded font-semibold hover:bg-emerald-600">
+              {loading ? "Generating..." : "Generate Assessment"}
+            </button>
+          </form>
+        ) : (
+          <div className="bg-white/10 p-8 rounded-lg">
+            <pre className="text-white text-sm whitespace-pre-wrap mb-6">{result}</pre>
+            <button onClick={() => setResult("")} className="w-full py-3 bg-blue-500 text-white rounded font-semibold hover:bg-blue-600">
+              New Assessment
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
